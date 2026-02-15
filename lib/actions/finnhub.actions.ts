@@ -178,3 +178,52 @@ export const searchStocks = cache(async (query?: string): Promise<StockWithWatch
         return [];
     }
 });
+
+export async function getInsiderTransactions(symbol: string) {
+    try {
+        const token = process.env.FINNHUB_API_KEY ?? NEXT_PUBLIC_FINNHUB_API_KEY;
+        if (!token) return [];
+
+        const url = `${FINNHUB_BASE_URL}/stock/insider-transactions?symbol=${symbol}&token=${token}`;
+        const data = await fetchJSON<{ data: any[] }>(url, 3600); // Cache for 1 hour
+        return data.data || [];
+    } catch (error) {
+        console.error('Error fetching insider transactions:', error);
+        return [];
+    }
+}
+
+export async function getInsiderSentiment(symbol: string) {
+    try {
+        const token = process.env.FINNHUB_API_KEY ?? NEXT_PUBLIC_FINNHUB_API_KEY;
+        if (!token) return null;
+
+        const url = `${FINNHUB_BASE_URL}/stock/insider-sentiment?symbol=${symbol}&from=2024-01-01&token=${token}`;
+        const data = await fetchJSON<{ data: any[] }>(url, 3600);
+        return data.data || [];
+    } catch (error) {
+        console.error('Error fetching insider sentiment:', error);
+        return [];
+    }
+}
+
+export async function getCongressionalTrading() {
+    try {
+        const token = process.env.FINNHUB_API_KEY ?? NEXT_PUBLIC_FINNHUB_API_KEY;
+        if (!token) return [];
+
+        const url = `${FINNHUB_BASE_URL}/stock/congressional-trading?token=${token}`;
+        const data = await fetchJSON<{ data: any[] }>(url, 3600); // Cache for 1 hour
+        return data.data || [];
+    } catch (error: any) {
+        // Return empty array for 403 (unauthorized/pro feature)
+        if (error.message?.includes('403')) {
+            console.warn('Congressional Trading API access restricted (likely requires premium subscription). Returning empty list.');
+            return [];
+        }
+
+        // Log other errors
+        console.error('Error fetching congressional trading:', error.message);
+        return [];
+    }
+}

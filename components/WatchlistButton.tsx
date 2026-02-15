@@ -5,14 +5,18 @@ import React, { useMemo, useState } from "react";
 // This component focuses on UI contract only. It toggles local state and
 // calls onWatchlistChange if provided. Styling hooks match globals.css.
 
+import { toggleWatchlist } from "@/lib/actions/watchlist.actions";
+import { toast } from "sonner";
+
 const WatchlistButton = ({
-                             symbol,
-                             company,
-                             isInWatchlist,
-                             showTrashIcon = false,
-                             type = "button",
-                             onWatchlistChange,
-                         }: WatchlistButtonProps) => {
+    symbol,
+    company,
+    isInWatchlist,
+    showTrashIcon = false,
+    type = "button",
+    onWatchlistChange,
+    className,
+}: WatchlistButtonProps) => {
     const [added, setAdded] = useState<boolean>(!!isInWatchlist);
 
     const label = useMemo(() => {
@@ -20,9 +24,21 @@ const WatchlistButton = ({
         return added ? "Remove from Watchlist" : "Add to Watchlist";
     }, [added, type]);
 
-    const handleClick = () => {
+    // ... inside component ...
+
+    const handleClick = async () => {
+        // Optimistic update
         const next = !added;
         setAdded(next);
+
+        const result = await toggleWatchlist(symbol);
+        if (!result.success) {
+            setAdded(!next); // Revert
+            toast.error("Failed to update watchlist");
+        } else {
+            toast.success(result.added ? `Added ${symbol} to watchlist` : `Removed ${symbol} from watchlist`);
+        }
+
         onWatchlistChange?.(symbol, next);
     };
 
@@ -53,7 +69,7 @@ const WatchlistButton = ({
     }
 
     return (
-        <button className={`watchlist-btn ${added ? "watchlist-remove" : ""}`} onClick={handleClick}>
+        <button className={`watchlist-btn ${added ? "watchlist-remove" : ""} ${className || ""}`} onClick={handleClick}>
             {showTrashIcon && added ? (
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
